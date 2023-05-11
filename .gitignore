@@ -1,2 +1,8 @@
 venv
 .env
+
+# For now
+config.py
+
+# Noise
+*.pyc
