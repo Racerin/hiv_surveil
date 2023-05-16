@@ -1,7 +1,8 @@
 Want TODO:
-    - Use live voice to text to give answers in filling-out soft form.
+    - Use live voice to text to give answers in filling-out soft form. (Speech to text)
 
 TODOs:
+    - Instead of pynput, use pyautogui?
     - Print the list of key commands in 'help'
     - Fix certain behaviors:
         - For now, use F1 to F20 to use commands BUT figure-out how to call function precisely from proper key combo
