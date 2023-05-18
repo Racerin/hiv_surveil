@@ -2,6 +2,7 @@ Want TODO:
     - Use live voice to text to give answers in filling-out soft form. (Speech to text)
 
 TODOs:
+    - DO proper singleton
     - Instead of pynput, use pyautogui?
     - Print the list of key commands in 'help'
     - Fix certain behaviors:
