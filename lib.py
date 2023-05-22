@@ -1,5 +1,6 @@
 import os
-from dataclasses import dataclass, Field
+from dataclasses import dataclass, Field, fields
+import json
 
 import pynput
 from pynput.keyboard import Key
@@ -13,15 +14,67 @@ class KeyListenerCommand:
     """ A command obj containing function to call based on key press. """
     name : str
     on_press_vs_on_release : bool
-    key_combination : tuple
-    callback_func = lambda: None
+    key_combinations : tuple['pynput.keyboard.KeyCode']
+    callback_func : None = lambda: None
 
     def __call__(self):
         """ Call the callback function """
         self.callback_func()
 
+    def __le__(self, other):
+        """ 
+        Do check to see if KeyListenerCommand (KLC) contains key presses commands
+        that are in another.
+        TODO: 
+            Checks for function keys (exclude KLC with only function key codes;)
+            When doing check, take into account key sequence. ex. W+A+S+D vs A+S+D+W
+        """
+        if isinstance(other, KeyListenerCommand):
+            # Ensure KLC's have some command length
+            if len(other.key_combinations) < 0:
+                ValueError("Other KLC '{}' needs some keys to press".format(other))
+            else:
+                # Check for keys
+                other_keys = set(other.key_combinations)
+                return all(self_key in other_keys for self_key in self.key_combinations)
+        else:
+            super().__le__(other)
 
-class MyKeyboardListener(pynput.keyboard.Controller):
+    @classmethod
+    def _klc_from_dict(cls, dict1:dict):
+        """ 
+        Return KeyListenerCommand (KLC) object from dict. 
+        """
+        klc_fields = fields(cls)
+        holder = dict()
+        for fld in klc_fields:
+            try:
+                val = dict1.get(fld)
+                holder.update({fld:val})
+            except KeyError:
+                pass
+        klc = KeyListenerCommand(**holder)
+        return klc
+
+    @classmethod
+    def from_json(cls, json_text:str)->list['KeyListenerCommand']:
+        """ 
+        Create KeyListenerCommand's (KLC) from json text.
+        """
+        assert isinstance(json_text, str), "text needs to be a str. {}".format(type(json_text))
+        klc_obj_objs = json.loads(json_text)
+        # Manage outputs
+        if isinstance(klc_obj_objs, dict):
+            ans = [cls._klc_from_dict(klc_obj_objs)]
+        elif isinstance(klc_obj_objs, list):
+            for ele in klc_obj_objs:
+                cls._klc_from_dict(ele)
+        else:
+            raise TypeError("Deserializing the json text did not return the correct file.")
+        return ans
+
+
+class MyKeyboardListener(pynput.keyboard.Listener):
     """ 
     A Keyboard Listener with additional methods and properties. 
     It is also a singleton.
@@ -32,18 +85,19 @@ class MyKeyboardListener(pynput.keyboard.Controller):
 
     keylistener_commands = list()
 
-    def __init__(self, *args, **kwargs):
-        """ NB. SIngleton """
-        if isinstance(self.__kl_listener, MyKeyboardListener):
-            raise AttributeError("Cannot have multiple instances of a singleton.")
-        else:
-            # New singleton
-            MyKeyboardListener.__kl_listener = self
-
     @classmethod
     def get_keyboard_listener(cls)->'MyKeyboardListener':
         """ Return MyKeyboardListener instance else return None """
         return cls.__kl_listener if isinstance(cls.__kl_listener,MyKeyboardListener) else None
+
+    @classmethod
+    def exists(cls)->bool:
+        """ Returns a boolean stating whether a listener exists and is running. """
+        if cls.__kl_listener:
+            if cls.__kl_listener.running:
+                return True
+        return False
+
     @classmethod
     def stop(cls, verbose=1):
         """ Stops the Keyboard listener """
@@ -54,13 +108,13 @@ class MyKeyboardListener(pynput.keyboard.Controller):
 
     @classmethod
     def __check_command_registered_already(cls, kl_command:KeyListenerCommand)->bool:
-        """ Check to see if a key listener command
+        """ Check to see if a key listener command (KLC)
          exists already by name and by key combinations in a list of commands """
-        command_name_exists = any((kl_command.name==cmd.name for cmd in cls.keylistener_commands))
+        # Check to see if any KLC names are the same
+        command_name_exists = any((kl_command.name==kl_cmd.name for kl_cmd in cls.keylistener_commands))
+        # Check to see if any KLC combo presses are being used already
         key_combination_exists = False
-        kl_command_combinations = set(kl_command.key_combination)
-        for kl_cmd in cls.keylistener_commands:
-            if set(kl_cmd.key_combination) in 
+        key_combination_exists = any(kl_command<=kl_cmd for kl_cmd in cls.keylistener_commands)
         return (command_name_exists or key_combination_exists)
 
     @classmethod
@@ -138,6 +192,20 @@ class MyKeyboardListener(pynput.keyboard.Controller):
         if key in self.keyboard_keys_holddown:
             self.keyboard_keys_holddown.remove(key)
 
+    def __init__(self, on_press=on_press_keyboard_callback, on_release=on_release_keyboard_callback):
+        """ NB. Singleton """
+        if isinstance(self.__kl_listener, MyKeyboardListener):
+            raise AttributeError("Cannot have multiple instances of a singleton.")
+        else:
+            # New singleton
+            MyKeyboardListener.__kl_listener = self
+            #  Deploy listener
+            # super(MyKeyboardListener, self).__init__(
+            super().__init__(
+                on_press=on_press,
+                on_release=on_release
+                )
+
 
 # Computer to Keyboard Typer
 keyboard_typer = pynput.keyboard.Controller()
@@ -158,28 +226,55 @@ def read_text_file(file_path)->str:
 
 def type_type_template_file(type_template_path=config.TYPE_TEMPLATE_PATH)->None:
     """ Read type_template.txt file, type-out each character in the file. """
-    text = read_text_file(type_template_path)
-    keyboard_typer.type(text)
+    try:
+        text = read_text_file(type_template_path)
+        keyboard_typer.type(text)
+    except FileNotFoundError as e:
+        raise FileNotFoundError("This file '{}' cannot be found".format(type_template_path)) from e
 
 
 # Default KeyboardListener Commands
-MyKeyboardListener.register_command(KeyListenerCommand(name="hello_world", on_press_vs_on_release=False), callback_func=lambda:print("Hello World"))
-MyKeyboardListener.register_command(KeyListenerCommand(name="made_it", on_press_vs_on_release=False))
-MyKeyboardListener.register_command(KeyListenerCommand(name="hello_world", on_press_vs_on_release=False))
-MyKeyboardListener.register_command(KeyListenerCommand(name="hello_world", on_press_vs_on_release=False))
+fx1 = lambda:print("Hello World")
+MyKeyboardListener.register_command(
+    KeyListenerCommand(
+        name="hello_world", 
+        on_press_vs_on_release=False,
+        callback_func=fx1,
+        key_combinations=(Key.f7,),
+        )
+    )
+fx2 = lambda:print("We made it.")
+MyKeyboardListener.register_command(
+    KeyListenerCommand(
+        name="made_it", 
+        on_press_vs_on_release=False,
+        callback_func=fx2,
+        key_combinations=(Key.f8,),
+        )
+    )
+MyKeyboardListener.register_command(
+    KeyListenerCommand(
+        name="type_out_template", 
+        on_press_vs_on_release=True,
+        callback_func=type_type_template_file, 
+        key_combinations=(Key.f9,),
+        )
+    )
 
-    keyboard_callback_functions = {
-        # (Key.shift, pynput.keyboard.KeyCode(char='l'), ): lambda: print("We made it."),
-        (pynput.keyboard.KeyCode(char='j'), ): lambda: print("A 'j' was pressed."),
-        # (pynput.keyboard.KeyCode(char='~'), ): lambda: print("I pressed it."),
-        # (Key.shift, Key.ctrl_l, pynput.keyboard.KeyCode(char='~'), ): type_type_template_file,
-        (Key.f9, ): type_type_template_file,
-    }
+# TODO: Convert to KeyListenerCommand
+keyboard_callback_functions = {
+    # (Key.shift, pynput.keyboard.KeyCode(char='l'), ): lambda: print("We made it."),
+    (pynput.keyboard.KeyCode(char='j'), ): lambda: print("A 'j' was pressed."),
+    # (pynput.keyboard.KeyCode(char='~'), ): lambda: print("I pressed it."),
+    # (Key.shift, Key.ctrl_l, pynput.keyboard.KeyCode(char='~'), ): type_type_template_file,
+    (Key.f9, ): type_type_template_file,
+}
 
 
 def start_keyboard_listener()->None:
     """ Listen to keyboard inputs and execute appropriate commands. """
     keyboard_listener = MyKeyboardListener()
+    print("+++++++++", dir(keyboard_listener))
     keyboard_listener.start()
 
 def end_keyboard_listener()->None:

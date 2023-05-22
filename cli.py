@@ -27,10 +27,10 @@ def start_keyboard_listener():
     """
     click.echo("Keyboard listener initiated.")
     lib.start_keyboard_listener()
-    while lib.keyboard_listener is not None:
+    while lib.MyKeyboardListener.exists():
         time.sleep(1)
-        click.echo("Broke-out the loop.")
-    time.sleep(1e4)
+    click.echo("Broke-out the loop.")
+    # time.sleep(1e4)
     click.echo("Keyboard listener terminated.")
 
 @cli.command()
