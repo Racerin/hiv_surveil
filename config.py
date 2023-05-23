@@ -1,4 +1,4 @@
-TYPE_TEMPLATE_PATH = "C:\Users\dabaird\Desktop\HIV_Surveillance\type_template.txt"
+TYPE_TEMPLATE_PATH = r"C:\Users\dabaird\Desktop\HIV_Surveillance\type_template.txt"
 
 HEADER_INFO = [
     "HEALTH POLICY RESEARCH & PLANNING",
