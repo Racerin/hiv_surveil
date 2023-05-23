@@ -40,6 +40,10 @@ class KeyListenerCommand:
         else:
             super().__le__(other)
 
+    def __str__(self):
+        return "KL Command: name='{}', Keys:{}".\
+            format(self.name, self.key_combinations)
+
     @classmethod
     def _klc_from_dict(cls, dict1:dict):
         """ 
@@ -144,6 +148,16 @@ class MyKeyboardListener(pynput.keyboard.Listener):
                     raise ValueError("Key '{}' doesn't exists.".format(key))
         else:
             TypeError("'{}' is not a str.".format(key))
+
+    @classmethod
+    def list_commands(cls)->str:
+        """ Return a list of commands registered in a nice format. """
+        each = list()
+        for cmd in cls.keylistener_commands:
+            each.append(str(cmd))
+        text = "\n".join(each)
+        return text
+
 
     def call_func_mapped_to_key(self, def_callback=lambda:None)->None:
         """ 

@@ -21,9 +21,8 @@ def type_header_on_screen():
 @cli.command()
 def start_keyboard_listener():
     """
-     Starts the Keyboard Listener. 
-    Execute commands based on button pressed.
-    execute 'list-commands' to see the possible commands (TO BE DONE)
+    Starts the Keyboard Listener. Execute commands based on button pressed.
+    execute 'list-commands' to see the possible commands.
     """
     click.echo("Keyboard listener initiated.")
     lib.start_keyboard_listener()
@@ -36,6 +35,13 @@ def start_keyboard_listener():
 @cli.command()
 def list_commands():
     """ List of all commands to be executed with Keyboard Listener. """
+    # TODO
+    cmd_text = lib.MyKeyboardListener.list_commands()
+    if cmd_text:
+        click.echo("See a list of commands callable below:")
+        click.echo(cmd_text)
+    else:
+        click.echo("There are no callable commands.")
     
 
 cli.add_command(type_header_on_screen)
