@@ -174,9 +174,45 @@ class MyKeyboardListener(pynput.keyboard.Listener):
         # Now, call the function
         callback_func()
         return None
+    
+    @classmethod
+    def compare_new_key_to_klcommands(cls, new_key, filters:dict=dict())->None:
+        """ 
+        Essentially, use new_key and keys already pressed to determine which command to call.
+        filters : If filters is populated, does a check to filter kl_cmd whose attribute/key matches the value/value
+        """
+        kl_cmds_post_filter = list()
+        if isinstance(filters, dict):
+            bigger_temp_set = set(MyKeyboardListener.keylistener_commands())
+            for k,v in filters.items():
+                for kl_cmd in MyKeyboardListener.keylistener_commands:
+                    temp_set = set()
+                    try:
+                        val = getattr(kl_cmd, k)
+                        if val == v:
+                            temp_set.add(kl_cmd)
+                    except AttributeError:
+                        pass
+                bigger_temp_set.intersection(temp_set)
+            kl_cmds_post_filter = list(bigger_temp_set)
+        else:
+            kl_cmds_post_filter = MyKeyboardListener.keylistener_commands
+        # TODO: Separate this function?
+        if len(kl_cmds_post_filter):
+            for kl_cmd in kl_cmds_post_filter:
+                # Check the active/new_key, see if it is in a command 
+                if new_key in kl_cmd.key_combinations:
+                    # and if it is, check the other buttons if they are pressed already 
+                    if all((key in MyKeyboardListener.keyboard_keys_holddown for key in kl_cmd.key_combinations)):
+                        # and if they are, call the command
+                        kl_cmd.callback_func()
+                        return None
+
+                    
 
     def on_press_keyboard_callback(self, key, verbose=0):
         """ Callback for 'start_keyboard_listener' function """
+        # TODO: Connect callback to keylistener commands
         # Logging
         if verbose > 0:
             try:
@@ -188,7 +224,8 @@ class MyKeyboardListener(pynput.keyboard.Listener):
 
     def on_release_keyboard_callback(self, key, verbose=0):
         """ Callback for 'start_keyboard_listener' function """
-        # Logging
+        # TODO: Connect callback to keylistener commands
+        # Logging. TODO: Switch to logger in cli
         if verbose > 0:
             print('{0} released'.format(
                 key))
@@ -196,6 +233,11 @@ class MyKeyboardListener(pynput.keyboard.Listener):
             # Stop listener
             self.stop()
             return False
+        
+        # TODO: To rename the following method
+        # Call callback_function
+        MyKeyboardListener.compare_new_key_to_klcommands(key, filters=dict(on_press_vs_on_release=True,))
+
         # Finally, Remove the character from the set
         if key not in self.keyboard_keys_holddown:
             # Once a new button is pressed, do the check
