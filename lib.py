@@ -1,99 +1,96 @@
 import os
+import logging
+import time
+from collections.abc import Callable
 
 import pynput
 from pynput.keyboard import Key
 
 import config
-
-
-def type_header(sep="\t"):
-    """ When called, types automatically the header information according to config.py """
-    pass
-
-def read_text_file(file_path)->str:
-    """ Read file and return text. """
-    text = ""
-    with open(file_path, mode="r") as file:
-        text = "".join(file.readlines())
-    return text
-
-def type_type_template_file(type_template_path=config.TYPE_TEMPLATE_PATH)->None:
-    """ Read type_template.txt file, type-out each character in the file. """
-    text = read_text_file(type_template_path)
-    keyboard_typer.type(text)
+from PARAMS import *
 
 # KEYBOARD CONTROLLER STUFF
 keyboard_typer = pynput.keyboard.Controller()
 keyboard_listener = None
 keyboard_keys_pressed = set()
 
-keyboard_callback_functions = {
-    # (Key.shift, pynput.keyboard.KeyCode(char='l'), ): lambda: print("We made it."),
-    (pynput.keyboard.KeyCode(char='j'), ): lambda: print("A 'j' was pressed."),
-    # (pynput.keyboard.KeyCode(char='~'), ): lambda: print("I pressed it."),
-    # (Key.shift, Key.ctrl_l, pynput.keyboard.KeyCode(char='~'), ): type_type_template_file,
-    (Key.f9, ): type_type_template_file,
+def verbose_set_logging_level(verbose:int)->None:
+    """ Using the count of verbose, set the logging level. """
+    logging_level = MAP_VERBOSE_LOGGING_LEVEL.get(verbose, logging.getLogger().level)
+    logging.getLogger().setLevel(logging_level)
+    print("The current logging level. {0}".format(logging.getLogger().level))
+
+def read_text_file(file_path:str)->str:
+    """ Read file and return text. """
+    text = ""
+    logging.debug("Opening file '{0}'.".format(file_path))
+    with open(file_path, mode="r") as file:
+        text = "".join(file.readlines())
+    logging.debug("Successfully read file '{0}'.".format(file_path))
+    return text
+
+def type_type_template_file(type_template_path:str=config.TYPE_TEMPLATE_PATH)->None:
+    """ Read type_template.txt file and type-out each character in the file. """
+    text = read_text_file(type_template_path)
+    keyboard_typer.type(text)
+
+mapped_keys_to_callback_functions = {
+    # (Key.ctrl_l, Key.f9,): type_type_template_file,
+    (Key.f9,): type_type_template_file,
 }
 
-def call_func_mapped_to_key()->None:
+def get_func_mapped_to_key()->Callable:
     """ 
     Call a function according to the keys pressed / held down in 'keyboard_keys_pressed'.
     Comparison map is 'keyboard_callback_functions'
     """
-    callback_func = lambda: None
     global keyboard_keys_pressed
     # TODO: The following code structure needs to be unittest to confirm proper behavior of keys selected to function
-    for key_tup in keyboard_callback_functions.keys():
-        if all(k in key_tup for k in keyboard_keys_pressed):
-        # if all(k in keyboard_keys_pressed for k in key_tup):
-            callback_func = keyboard_callback_functions[key_tup]
-            break
-    # Now, call the function
-    callback_func()
-    return
+    for t_keys, callback_func in mapped_keys_to_callback_functions.items():
+        if all(t_key in keyboard_keys_pressed for t_key in t_keys):
+            return callback_func
 
-def on_press_keyboard_callback(key, verbose=0):
+def on_press_keyboard_callback(key)-> None:
     """ Callback for 'start_keyboard_listener' function """
     global keyboard_keys_pressed
-    # Logging
-    if verbose > 0:
-        try:
-            print('alphanumeric key {0} pressed'.format(
-                key.char))
-        except AttributeError:
-            print('special key {0} pressed'.format(
-                key))
+    logging.debug('special key {0} pressed'.format(key))
+    global keyboard_keys_pressed
+    keyboard_keys_pressed.add(key)
+    # logging.debug("These are the keys pressed. {0}".format(keyboard_keys_pressed))
 
-def on_release_keyboard_callback(key, verbose=0):
+def on_release_keyboard_callback(key):
     """ Callback for 'start_keyboard_listener' function """
-    # Logging
-    if verbose > 0:
-        print('{0} released'.format(
-            key))
+    logging.debug('special key {0} released'.format(key))
+    # Escape Keyboard Listener function
     if key == pynput.keyboard.Key.esc:
         # Stop listener
+        logging.info("Keyboard listener stopped.")
         return False
-    # Finally, Remove the character from the set
+    # ONLY action the callback function when the key is released
     global keyboard_keys_pressed
-    if key not in keyboard_keys_pressed:
-        # Once a new button is pressed, do the check
-        keyboard_keys_pressed.add(key)
-        print(keyboard_keys_pressed, " Keys held down.")
-        # Call the key callback function now. 
-        call_func_mapped_to_key()
-    if key in keyboard_keys_pressed:
-        keyboard_keys_pressed.remove(key)
+    callback_func = get_func_mapped_to_key()
+    keyboard_keys_pressed.discard(key)  # remove key if it is there or not
+    if callback_func is not None:
+        callback_func()
 
 
 def start_keyboard_listener():
     """ Listen to keyboard inputs and execute appropriate commands. """
+    logging.info("Start keyboard listener.")
     keyboard_listener = pynput.keyboard.Listener(
         on_press=on_press_keyboard_callback,
         on_release=on_release_keyboard_callback)
     keyboard_listener.start()
+    time.sleep(LIMIT_SLEEP_TIME)
+    
+    # The following freezes the command line
+    """ with pynput.keyboard.Listener(
+        on_press=on_press_keyboard_callback,
+        on_release=on_release_keyboard_callback) as kayboard_listener:
+        kayboard_listener.join() """
 
 def end_keyboard_listener():
     """ Stop the keyboard listener. """
-    # pynput.keyboard.Listener.stop
+    logging.info("End keyboard listener.")
     if keyboard_listener is not None:
         keyboard_listener.stop()
