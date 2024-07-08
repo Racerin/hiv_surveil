@@ -1,9 +1,1 @@
-TYPE_TEMPLATE_PATH = r"C:\Users\dabaird\Desktop\HIV_Surveillance\type_template.txt"
-
-HEADER_INFO = [
-    "HEALTH POLICY RESEARCH & PLANNING",
-    "26/01/2023",
-    "DIEGO MARTIN HEALTH CENTER",
-    "NATASHA HOSEIN ALI",
-
-]
+TYPE_TEMPLATE_PATH = r"C:\Users\dbaird\Documents\Public-Health-Observatory\HIV Surveillance 2024\HIV_Surveillance\type_template.txt"
