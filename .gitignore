@@ -3,6 +3,9 @@ venv
 
 # For now
 config.py
+type_template.txt
 
 # Noise
 *.pyc
+*.code-workspace
+*.vscode
