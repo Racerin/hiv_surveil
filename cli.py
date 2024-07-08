@@ -1,22 +1,16 @@
 import time
+import logging
 
 import click
 
 import lib
 
 @click.group()
-# Add verbose
-def cli():
-    pass
-
-@cli.command()
-def hello_world():
-    """ This script prints a basic 'Hello World' text. """
-    click.echo("Hello World.")
-
-@cli.command()
-def type_header_on_screen():
-    lib.type_header()
+@click.option('-v', '--verbose', count=True, default=1, help="Set the logging level of program.")
+# def cli(verbose=None):
+def cli(verbose):
+    # Set verbose
+    lib.verbose_set_logging_level(verbose)
 
 @cli.command()
 def start_keyboard_listener():
@@ -26,27 +20,6 @@ def start_keyboard_listener():
     """
     click.echo("Keyboard listener initiated.")
     lib.start_keyboard_listener()
-    while lib.MyKeyboardListener.exists():
-        time.sleep(1)
-    click.echo("Broke-out the loop.")
-    # time.sleep(1e4)
-    click.echo("Keyboard listener terminated.")
-
-@cli.command()
-def list_commands():
-    """ List of all commands to be executed with Keyboard Listener. """
-    # TODO
-    cmd_text = lib.MyKeyboardListener.list_commands()
-    if cmd_text:
-        click.echo("See a list of commands callable below:")
-        click.echo(cmd_text)
-    else:
-        click.echo("There are no callable commands.")
-    
-
-cli.add_command(type_header_on_screen)
-cli.add_command(start_keyboard_listener)
-cli.add_command(hello_world)
 
 if __name__ == '__main__':
     cli()
