@@ -5,9 +5,17 @@ from collections.abc import Callable
 
 import pynput
 from pynput.keyboard import Key
+from dotenv import load_dotenv
 
 import config
 from PARAMS import *
+
+load_dotenv()
+
+# Load environment variables
+logging.debug("Loading 'TYPE_TEMPLATE_PATH' environment variable. Old '{0}'".format(config.TYPE_TEMPLATE_PATH))
+config.TYPE_TEMPLATE_PATH = os.environ.get("TYPE_TEMPLATE_PATH",config.TYPE_TEMPLATE_PATH)
+logging.debug("Loaded 'TYPE_TEMPLATE_PATH' environment variable. New '{0}'".format(config.TYPE_TEMPLATE_PATH))
 
 # KEYBOARD CONTROLLER STUFF
 keyboard_typer = pynput.keyboard.Controller()
@@ -82,12 +90,6 @@ def start_keyboard_listener():
         on_release=on_release_keyboard_callback)
     keyboard_listener.start()
     time.sleep(LIMIT_SLEEP_TIME)
-    
-    # The following freezes the command line
-    """ with pynput.keyboard.Listener(
-        on_press=on_press_keyboard_callback,
-        on_release=on_release_keyboard_callback) as kayboard_listener:
-        kayboard_listener.join() """
 
 def end_keyboard_listener():
     """ Stop the keyboard listener. """
