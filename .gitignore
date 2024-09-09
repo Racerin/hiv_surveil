@@ -1,9 +1,11 @@
+# Ignore developer's virtual environment
 venv
 .env
 
-# For now
+# Personal safety
 config.py
 type_template.txt
+*.sh
 
 # Noise
 *.pyc
